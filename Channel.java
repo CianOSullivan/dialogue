@@ -12,10 +12,11 @@ public class Channel extends ReceiverAdapter {
     String user_name = System.getProperty("user.name", "n/a");
 
     public void start() throws Exception {
-        window = new ChannelWindow();
         channel = new JChannel();
         channel.setReceiver(this);
         channel.connect("ChatChannel");
+        window = new ChannelWindow(this);
+
         eventLoop();
         channel.close();
     }
@@ -43,7 +44,17 @@ public class Channel extends ReceiverAdapter {
         // System.out.println("** view: " + new_view);
     }
 
+    public void send(String msg) {
+        try {
+            ChannelMessage message = new ChannelMessage(user_name, msg);
+            channel.send(new Message(null, null, message));
+            System.out.println("Sent message");
+        } catch (Exception e) {
+        }
+    }
+
     public void receive(Message msg) {
+
         window.addMessage(msg);
         System.out.println("MSG RECEIVED");
     }

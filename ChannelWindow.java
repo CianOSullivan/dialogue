@@ -1,6 +1,9 @@
 import javax.swing.*;
 import java.awt.*;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
 import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -9,14 +12,18 @@ import javax.swing.border.*;
 
 import org.jgroups.Message;
 
-public class ChannelWindow {
+public class ChannelWindow implements ActionListener {
     JTextPane text_area;
+    JMenuItem exitItem;
     JButton sendButton;
     JButton clearButton;
+    Channel channel;
 
-    public ChannelWindow() {
+    public ChannelWindow(Channel c) {
+        channel = c;
         makeWindow();
 
+        c.send("SETUP COMPLETE");
     }
 
     private void makeWindow() {
@@ -33,8 +40,12 @@ public class ChannelWindow {
         mb.add(m2);
         JMenuItem m11 = new JMenuItem("Open");
         JMenuItem m22 = new JMenuItem("Save as");
+        exitItem = new JMenuItem("Exit");
+
         m1.add(m11);
         m1.add(m22);
+        m1.add(exitItem);
+        exitItem.addActionListener(this);
 
         // Creating the panel at bottom and adding components
         JPanel panel = new JPanel(); // the panel is not visible in output
@@ -44,6 +55,7 @@ public class ChannelWindow {
 
         JButton sendButton = new JButton("Send");
         clearButton = new JButton("Clear");
+        clearButton.addActionListener(this);
         panel.add(label); // Components Added using Flow Layout
         panel.add(tf);
         panel.add(sendButton);
@@ -82,5 +94,14 @@ public class ChannelWindow {
         // text_area.append(msg.getSrc() + "");
         // text_area.setFont(f);
         // text_area.append(": " + msg.getObject() + "\n");
+    }
+
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == clearButton) {
+            text_area.selectAll();
+            text_area.replaceSelection("");
+        } else if (e.getSource() == exitItem) {
+            System.exit(0);
+        }
     }
 }
