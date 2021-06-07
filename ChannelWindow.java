@@ -3,6 +3,9 @@ import java.awt.*;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.awt.event.WindowAdapter;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
@@ -14,8 +17,9 @@ import javax.swing.UIManager.LookAndFeelInfo;
 import org.jgroups.Message;
 import com.formdev.flatlaf.FlatDarculaLaf;
 
-public class ChannelWindow implements ActionListener {
+public class ChannelWindow extends WindowAdapter implements ActionListener {
     JTextPane text_area;
+    JTextField tf;
     JMenuItem exitItem;
     JButton sendButton;
     JButton clearButton;
@@ -25,12 +29,8 @@ public class ChannelWindow implements ActionListener {
 
     public ChannelWindow(Channel c) {
         channel = c;
-        // FlatIntelliJLaf.install();
-        try {
-            UIManager.setLookAndFeel(new FlatDarculaLaf());
-        } catch (Exception ex) {
-            System.err.println("Failed to initialize LaF");
-        }
+        FlatDarculaLaf.install();
+
         generateFontAttributes();
         makeWindow();
 
@@ -64,7 +64,7 @@ public class ChannelWindow implements ActionListener {
 
         // Creating the MenuBar and adding components
         JMenuBar mb = new JMenuBar();
-        JMenu m1 = new JMenu("FILE");
+        JMenu m1 = new JMenu("File");
         JMenu m2 = new JMenu("Help");
         mb.add(m1);
         mb.add(m2);
@@ -81,18 +81,18 @@ public class ChannelWindow implements ActionListener {
         JPanel panel = new JPanel(); // the panel is not visible in output
 
         JLabel label = new JLabel("Enter Text");
-        JTextField tf = new JTextField(60); // accepts upto 10 characters
+        tf = new JTextField(60); // accepts upto 10 characters
 
-        JButton sendButton = new JButton("Send");
+        sendButton = new JButton("Send");
         text_area = new JTextPane();
 
         JScrollPane scroll = new JScrollPane(text_area, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         clearButton = new JButton("Clear");
+        sendButton.addActionListener(this);
         clearButton.addActionListener(this);
         panel.add(label); // Components Added using Flow Layout
-        // panel.add(scroll);
         panel.add(tf);
         panel.add(sendButton);
         panel.add(clearButton);
@@ -104,31 +104,15 @@ public class ChannelWindow implements ActionListener {
         frame.getContentPane().add(BorderLayout.NORTH, mb);
         frame.getContentPane().add(BorderLayout.CENTER, scroll);
         frame.setVisible(true);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.addWindowListener(this);
     }
 
     public void addMessage(Message msg) {
-        // Font f = new Font(Font.SANS_SERIF, Font.BOLD, 20);
-        // Font f2 = new Font(Font.SANS_SERIF, Font.BOLD, 10);
         ChannelMessage contents = (ChannelMessage) msg.getObject();
 
         printUsername(contents.getAuthor());
         printMessage(contents.getMsg());
-
-        /*
-         * int len = text_area.getDocument().getLength();
-         * text_area.setCaretPosition(len); text_area.setCharacterAttributes(aset,
-         * false); text_area.replaceSelection(contents.getAuthor() + ": " +
-         * contents.getMsg() + "\n");
-         */
-
-        // System.out.println(msg.getSrc() + ": " + msg.getObject());
-
-        // text_area.replaceSelection(msg.getObject() + "\n");
-
-        // text_area.setFont(f);
-        // text_area.append(msg.getSrc() + "");
-        // text_area.setFont(f);
-        // text_area.append(": " + msg.getObject() + "\n");
     }
 
     private void printUsername(String author) {
@@ -149,8 +133,20 @@ public class ChannelWindow implements ActionListener {
         if (e.getSource() == clearButton) {
             text_area.selectAll();
             text_area.replaceSelection("");
+        } else if (e.getSource() == sendButton) {
+            if (!tf.getText().isEmpty()) {
+                channel.send(tf.getText());
+                tf.setText("");
+            }
         } else if (e.getSource() == exitItem) {
+            channel.close();
             System.exit(0);
         }
+    }
+
+    public void windowClosing(WindowEvent e) {
+        System.out.println("WindowListener method called: windowClosing.");
+        channel.close();
+        System.out.println("Channel closed");
     }
 }

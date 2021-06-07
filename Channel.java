@@ -17,8 +17,8 @@ public class Channel extends ReceiverAdapter {
         channel.connect("ChatChannel");
         window = new ChannelWindow(this);
 
-        eventLoop();
-        channel.close();
+        // eventLoop();
+        // channel.close();
     }
 
     private void eventLoop() throws Exception {
@@ -57,6 +57,10 @@ public class Channel extends ReceiverAdapter {
 
         window.addMessage(msg);
         System.out.println("MSG RECEIVED");
+    }
+
+    public void close() {
+        channel.close();
     }
 
     public static void main(String[] args) {
