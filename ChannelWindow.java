@@ -9,8 +9,10 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 import javax.swing.border.*;
+import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.jgroups.Message;
+import com.formdev.flatlaf.FlatDarculaLaf;
 
 public class ChannelWindow implements ActionListener {
     JTextPane text_area;
@@ -18,12 +20,40 @@ public class ChannelWindow implements ActionListener {
     JButton sendButton;
     JButton clearButton;
     Channel channel;
+    AttributeSet purpleAttributes;
+    AttributeSet whiteAttributes;
 
     public ChannelWindow(Channel c) {
         channel = c;
+        // FlatIntelliJLaf.install();
+        try {
+            UIManager.setLookAndFeel(new FlatDarculaLaf());
+        } catch (Exception ex) {
+            System.err.println("Failed to initialize LaF");
+        }
+        generateFontAttributes();
         makeWindow();
 
         c.send("SETUP COMPLETE");
+    }
+
+    private void generateFontAttributes() {
+        Color c = Color.decode("#bd93f9");// Color.RED;
+
+        StyleContext sc = StyleContext.getDefaultStyleContext();
+        purpleAttributes = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
+        // purpleAttributes = sc.addAttribute(purpleAttributes,
+        // StyleConstants.FontFamily, "Lucida Console");
+        purpleAttributes = sc.addAttribute(purpleAttributes, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED);
+        purpleAttributes = sc.addAttribute(purpleAttributes, StyleConstants.Size, 14);
+
+        c = Color.decode("#f8f8f2");
+        sc = StyleContext.getDefaultStyleContext();
+        whiteAttributes = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
+        // whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.FontFamily,
+        // "Lucida Console");
+        whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED);
+        whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.Size, 14);
     }
 
     private void makeWindow() {
@@ -80,25 +110,39 @@ public class ChannelWindow implements ActionListener {
         // Font f = new Font(Font.SANS_SERIF, Font.BOLD, 20);
         // Font f2 = new Font(Font.SANS_SERIF, Font.BOLD, 10);
         ChannelMessage contents = (ChannelMessage) msg.getObject();
-        Color c = Color.RED;
-        StyleContext sc = StyleContext.getDefaultStyleContext();
-        AttributeSet aset = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
 
-        aset = sc.addAttribute(aset, StyleConstants.FontFamily, "Lucida Console");
-        aset = sc.addAttribute(aset, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED);
+        printUsername(contents.getAuthor());
+        printMessage(contents.getMsg());
+
+        /*
+         * int len = text_area.getDocument().getLength();
+         * text_area.setCaretPosition(len); text_area.setCharacterAttributes(aset,
+         * false); text_area.replaceSelection(contents.getAuthor() + ": " +
+         * contents.getMsg() + "\n");
+         */
 
         // System.out.println(msg.getSrc() + ": " + msg.getObject());
 
-        int len = text_area.getDocument().getLength();
-        text_area.setCaretPosition(len);
-        text_area.setCharacterAttributes(aset, false);
         // text_area.replaceSelection(msg.getObject() + "\n");
-        text_area.replaceSelection(contents.getAuthor() + ": " + contents.getMsg() + "\n");
 
         // text_area.setFont(f);
         // text_area.append(msg.getSrc() + "");
         // text_area.setFont(f);
         // text_area.append(": " + msg.getObject() + "\n");
+    }
+
+    private void printUsername(String author) {
+        int len = text_area.getDocument().getLength();
+        text_area.setCaretPosition(len);
+        text_area.setCharacterAttributes(purpleAttributes, false);
+        text_area.replaceSelection("[" + author + "]" + ": ");
+    }
+
+    private void printMessage(String msg) {
+        int len = text_area.getDocument().getLength();
+        text_area.setCaretPosition(len);
+        text_area.setCharacterAttributes(whiteAttributes, false);
+        text_area.replaceSelection(msg + "\n");
     }
 
     public void actionPerformed(ActionEvent e) {
