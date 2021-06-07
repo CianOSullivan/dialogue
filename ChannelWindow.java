@@ -54,20 +54,25 @@ public class ChannelWindow implements ActionListener {
         JTextField tf = new JTextField(60); // accepts upto 10 characters
 
         JButton sendButton = new JButton("Send");
+        text_area = new JTextPane();
+
+        JScrollPane scroll = new JScrollPane(text_area, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
         clearButton = new JButton("Clear");
         clearButton.addActionListener(this);
         panel.add(label); // Components Added using Flow Layout
+        // panel.add(scroll);
         panel.add(tf);
         panel.add(sendButton);
         panel.add(clearButton);
 
         // Text Area at the Center
-        text_area = new JTextPane();
 
         // Adding Components to the frame.
         frame.getContentPane().add(BorderLayout.SOUTH, panel);
         frame.getContentPane().add(BorderLayout.NORTH, mb);
-        frame.getContentPane().add(BorderLayout.CENTER, text_area);
+        frame.getContentPane().add(BorderLayout.CENTER, scroll);
         frame.setVisible(true);
     }
 
