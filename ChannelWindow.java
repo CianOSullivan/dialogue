@@ -21,9 +21,12 @@ import org.jgroups.Message;
 import com.formdev.flatlaf.FlatDarculaLaf;
 
 public class ChannelWindow extends WindowAdapter implements ActionListener {
+    JFrame frame;
     JTextPane text_area;
     JTextField tf;
     JMenuItem exitItem;
+    JMenuItem aboutItem;
+    JMenuItem saveItem;
     JButton sendButton;
     JButton clearButton;
     Channel channel;
@@ -36,8 +39,6 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
         generateFontAttributes();
         makeWindow();
-
-        c.send("SETUP COMPLETE");
     }
 
     private void generateFontAttributes() {
@@ -61,23 +62,26 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     private void makeWindow() {
         // Creating the Frame
-        JFrame frame = new JFrame("Chat Frame");
+        frame = new JFrame("Dialogue");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(400, 400);
 
         // Creating the MenuBar and adding components
         JMenuBar mb = new JMenuBar();
-        JMenu m1 = new JMenu("File");
-        JMenu m2 = new JMenu("Help");
-        mb.add(m1);
-        mb.add(m2);
-        JMenuItem m11 = new JMenuItem("Open");
-        JMenuItem m22 = new JMenuItem("Save as");
+        JMenu fileMenu = new JMenu("File");
+        JMenu helpMenu = new JMenu("Help");
+
+        saveItem = new JMenuItem("Save as");
+        aboutItem = new JMenuItem("About");
         exitItem = new JMenuItem("Exit");
 
-        m1.add(m11);
-        m1.add(m22);
-        m1.add(exitItem);
+        mb.add(fileMenu);
+        mb.add(helpMenu);
+        fileMenu.add(saveItem);
+        fileMenu.add(exitItem);
+        helpMenu.add(aboutItem);
+
+        aboutItem.addActionListener(this);
         exitItem.addActionListener(this);
 
         // Creating the panel at bottom and adding components
@@ -146,6 +150,15 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    private void displayAbout() {
+        String helpString = "Dialogue - Local network chat application.\n\n"
+                + "Allows for easy communication between multiple computers on a local network. "
+                + "Utilises JGroups for relible group messaging. "
+                + "Any messages sent to one client will appear on other clients that are also online.";
+        JOptionPane.showMessageDialog(frame, helpString);
+
+    }
+
     public void actionPerformed(ActionEvent e) {
         Object src = e.getSource();
         if (src == clearButton) {
@@ -156,6 +169,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
                 channel.send(tf.getText());
                 tf.setText("");
             }
+        } else if (src == aboutItem) {
+            displayAbout();
         } else if (src == exitItem) {
             channel.close();
             System.exit(0);
