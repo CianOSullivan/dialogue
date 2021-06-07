@@ -8,9 +8,12 @@ import java.awt.event.WindowListener;
 import java.awt.event.WindowAdapter;
 
 import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
+import javax.swing.text.StyledDocument;
+
 import javax.swing.border.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 
@@ -45,7 +48,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         // purpleAttributes = sc.addAttribute(purpleAttributes,
         // StyleConstants.FontFamily, "Lucida Console");
         purpleAttributes = sc.addAttribute(purpleAttributes, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED);
-        purpleAttributes = sc.addAttribute(purpleAttributes, StyleConstants.Size, 14);
+        purpleAttributes = sc.addAttribute(purpleAttributes, StyleConstants.Size, 15);
 
         c = Color.decode("#f8f8f2");
         sc = StyleContext.getDefaultStyleContext();
@@ -53,7 +56,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         // whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.FontFamily,
         // "Lucida Console");
         whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED);
-        whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.Size, 14);
+        whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.Size, 15);
     }
 
     private void makeWindow() {
@@ -85,6 +88,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
         sendButton = new JButton("Send");
         text_area = new JTextPane();
+        text_area.setEditable(false);
 
         JScrollPane scroll = new JScrollPane(text_area, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -92,6 +96,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         clearButton = new JButton("Clear");
         sendButton.addActionListener(this);
         clearButton.addActionListener(this);
+        tf.addActionListener(this);
+
         panel.add(label); // Components Added using Flow Layout
         panel.add(tf);
         panel.add(sendButton);
@@ -116,29 +122,41 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     private void printUsername(String author) {
-        int len = text_area.getDocument().getLength();
-        text_area.setCaretPosition(len);
-        text_area.setCharacterAttributes(purpleAttributes, false);
-        text_area.replaceSelection("[" + author + "]" + ": ");
+        StyledDocument doc = text_area.getStyledDocument();
+        try {
+            doc.insertString(doc.getLength(), "[" + author + "]" + ": ", purpleAttributes);
+        } catch (BadLocationException e) {
+            System.out.println("Couldn't insert string");
+        }
     }
 
     private void printMessage(String msg) {
-        int len = text_area.getDocument().getLength();
-        text_area.setCaretPosition(len);
-        text_area.setCharacterAttributes(whiteAttributes, false);
-        text_area.replaceSelection(msg + "\n");
+        // int len = text_area.getDocument().getLength();
+        // text_area.setCaretPosition(len);
+        // text_area.setCharacterAttributes(whiteAttributes, false);
+        // text_area.replaceSelection(msg + "\n");
+        // StyledDocument doc = text_area.getStyledDocument();
+        // doc.insertString(author, doc.getLength(), purpleAttributes);
+        StyledDocument doc = text_area.getStyledDocument();
+
+        try {
+            doc.insertString(doc.getLength(), msg + "\n", whiteAttributes);
+        } catch (BadLocationException e) {
+            System.out.println("Couldn't insert string");
+        }
     }
 
     public void actionPerformed(ActionEvent e) {
-        if (e.getSource() == clearButton) {
+        Object src = e.getSource();
+        if (src == clearButton) {
             text_area.selectAll();
             text_area.replaceSelection("");
-        } else if (e.getSource() == sendButton) {
+        } else if (src == sendButton || src == tf) {
             if (!tf.getText().isEmpty()) {
                 channel.send(tf.getText());
                 tf.setText("");
             }
-        } else if (e.getSource() == exitItem) {
+        } else if (src == exitItem) {
             channel.close();
             System.exit(0);
         }
