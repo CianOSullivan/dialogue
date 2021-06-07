@@ -46,6 +46,9 @@ public class Channel extends ReceiverAdapter {
 
     public void send(String msg) {
         try {
+            msg = msg.replace("\\n", "\n");
+            msg = msg.replace("\\t", "    ");
+
             ChannelMessage message = new ChannelMessage(user_name, msg);
             channel.send(new Message(null, null, message));
             System.out.println("Sent message");
