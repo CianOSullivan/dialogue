@@ -1,3 +1,4 @@
+import javax.crypto.KeyGenerator;
 import javax.crypto.SealedObject;
 import javax.crypto.SecretKey;
 import javax.swing.*;
@@ -84,7 +85,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         // Creating the Frame
         frame = new JFrame("Dialogue");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 400);
+        frame.setSize(800, 800);
 
         // Creating the MenuBar and adding components
         JMenuBar mb = new JMenuBar();
@@ -259,6 +260,44 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     }
 
+    private void makeKey() {
+        // Generate a new cipher and add key to server
+        try {
+            KeyGenerator kgen = KeyGenerator.getInstance("AES");
+            kgen.init(128);
+            SecretKey newKey = kgen.generateKey();
+
+            if (new File("key.txt").isFile()) {
+                System.out.println("Key file already exists");
+
+                int dialogResult = JOptionPane.showConfirmDialog(null, "Key already exists. Overwrite?", "Warning",
+                        JOptionPane.YES_NO_OPTION);
+                if (dialogResult == JOptionPane.YES_OPTION) {
+                    // Saving code here
+                    System.out.println("Overwrite");
+                    try (FileOutputStream key_file = new FileOutputStream("key.txt")) {
+                        key_file.write(newKey.getEncoded());
+                    }
+                    aesKey = newKey;
+                    channel.updateKey(aesKey);
+                }
+
+            } else {
+                try (FileOutputStream key_file = new FileOutputStream("key.txt")) {
+                    key_file.write(newKey.getEncoded());
+                }
+                aesKey = newKey;
+                channel.updateKey(aesKey);
+
+            }
+
+        } catch (NoSuchAlgorithmException | IOException e) {
+            System.out.println("An error occurred generating key.");
+            e.printStackTrace();
+        }
+
+    }
+
     private void uploadFile() {
         final JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(true);
@@ -296,6 +335,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             uploadFile();
         } else if (src == listMembers) {
             listMembers();
+        } else if (src == genKeyItem) {
+            makeKey();
         } else if (src == saveItem) {
             saveTranscript();
         } else if (src == exitItem) {

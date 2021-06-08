@@ -22,6 +22,10 @@ public class Channel extends ReceiverAdapter {
         aesKey = key;
     }
 
+    public void updateKey(SecretKey newKey) {
+        aesKey = newKey;
+    }
+
     public void start() throws Exception {
         channel = new JChannel();
         channel.setReceiver(this);
