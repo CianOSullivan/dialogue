@@ -3,6 +3,7 @@ import org.jgroups.View;
 import org.jgroups.ReceiverAdapter;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 
 import javax.crypto.Cipher;
@@ -59,6 +60,19 @@ public class Channel extends ReceiverAdapter {
             cipher.init(Cipher.ENCRYPT_MODE, aesKey);
 
             ChannelMessage message = new ChannelMessage(user_name, msg);
+            SealedObject sealedMessage = new SealedObject(message, cipher);
+            channel.send(new Message(null, null, sealedMessage));
+            System.out.println("Sent message");
+        } catch (Exception e) {
+        }
+    }
+
+    public void send(File fileMeta, byte[] msg) {
+        try {
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+
+            ChannelMessage message = new ChannelMessage(user_name, fileMeta, msg);
             SealedObject sealedMessage = new SealedObject(message, cipher);
             channel.send(new Message(null, null, sealedMessage));
             System.out.println("Sent message");

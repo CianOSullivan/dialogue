@@ -8,8 +8,11 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
@@ -157,11 +160,30 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         try {
             SealedObject sealedContents = (SealedObject) msg.getObject();
             ChannelMessage contents = (ChannelMessage) sealedContents.getObject(aesKey);
+            if (contents.isFile()) {
+                saveFile(contents.getFileMeta(), contents.getFile());
 
-            printUsername(contents.getAuthor());
-            printMessage(contents.getMsg());
+            } else {
+                printUsername(contents.getAuthor());
+                printMessage(contents.getMsg());
+            }
         } catch (NoSuchAlgorithmException | InvalidKeyException | ClassNotFoundException | IOException e) {
             System.out.println("Couldn't unseal message" + e);
+        }
+    }
+
+    private void saveFile(File fileMeta, byte[] file) {
+        System.out.println("Saving file");
+        // Check if file already exists
+        // if not then download
+        String home = System.getProperty("user.home");
+        String file_loc = home + "/Downloads/test.txt";
+        try (FileOutputStream fos = new FileOutputStream(file_loc)) {
+            fos.write(file);
+            // fos.close // no need, try-with-resources auto close
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
 
@@ -231,6 +253,23 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     }
 
+    private void uploadFile() {
+        final JFileChooser fc = new JFileChooser();
+        int returnVal = fc.showOpenDialog(frame);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File f = fc.getSelectedFile();
+            System.out.println("You chose to open this file: " + f.getAbsolutePath());
+            try {
+                byte[] fileContent = Files.readAllBytes(f.toPath());
+                channel.send(f, fileContent);
+                System.out.println("file sent");
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
+
     public void actionPerformed(ActionEvent e) {
         Object src = e.getSource();
         if (src == clearButton) {
@@ -242,6 +281,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             }
         } else if (src == aboutItem) {
             displayAbout();
+        } else if (src == uploadItem) {
+            System.out.println("Uploading file");
+            uploadFile();
         } else if (src == listMembers) {
             listMembers();
         } else if (src == saveItem) {
