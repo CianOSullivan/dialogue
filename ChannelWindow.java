@@ -23,6 +23,7 @@ import javax.swing.border.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.jgroups.Message;
+
 import com.formdev.flatlaf.FlatDarculaLaf;
 
 public class ChannelWindow extends WindowAdapter implements ActionListener {
@@ -32,6 +33,11 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     JMenuItem exitItem;
     JMenuItem aboutItem;
     JMenuItem saveItem;
+    JMenuItem uploadItem;
+    JMenuItem syncKeyItem;
+    JMenuItem genKeyItem;
+    JMenuItem listMembers;
+
     JButton sendButton;
     JButton clearButton;
     Channel channel;
@@ -76,17 +82,35 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         // Creating the MenuBar and adding components
         JMenuBar mb = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
+        JMenu toolsMenu = new JMenu("Tools");
+
         JMenu helpMenu = new JMenu("Help");
+
+        uploadItem = new JMenuItem("Upload file");
+        genKeyItem = new JMenuItem("Generate new key");
+        syncKeyItem = new JMenuItem("Sync key to all channel members");
+        listMembers = new JMenuItem("List all channel members");
 
         saveItem = new JMenuItem("Save as");
         aboutItem = new JMenuItem("About");
         exitItem = new JMenuItem("Exit");
 
         mb.add(fileMenu);
+        mb.add(toolsMenu);
         mb.add(helpMenu);
+        fileMenu.add(uploadItem);
         fileMenu.add(saveItem);
         fileMenu.add(exitItem);
+        toolsMenu.add(genKeyItem);
+        toolsMenu.add(syncKeyItem);
+        toolsMenu.add(listMembers);
         helpMenu.add(aboutItem);
+
+        uploadItem.addActionListener(this);
+        saveItem.addActionListener(this);
+        genKeyItem.addActionListener(this);
+        syncKeyItem.addActionListener(this);
+        listMembers.addActionListener(this);
 
         aboutItem.addActionListener(this);
         exitItem.addActionListener(this);
@@ -135,7 +159,6 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         } catch (NoSuchAlgorithmException | InvalidKeyException | ClassNotFoundException | IOException e) {
             System.out.println("Couldn't unseal message" + e);
         }
-
     }
 
     private void printUsername(String author) {
@@ -180,6 +203,12 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    private void listMembers() {
+        String members = "Members connected to cluster: " + channel.getView().getMembers().size();
+
+        JOptionPane.showMessageDialog(frame, members);
+    }
+
     public void actionPerformed(ActionEvent e) {
         Object src = e.getSource();
         if (src == clearButton) {
@@ -191,6 +220,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             }
         } else if (src == aboutItem) {
             displayAbout();
+        } else if (src == listMembers) {
+            listMembers();
         } else if (src == exitItem) {
             channel.close();
             System.exit(0);

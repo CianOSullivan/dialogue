@@ -31,6 +31,10 @@ public class Channel extends ReceiverAdapter {
         // channel.close();
     }
 
+    public View getView() {
+        return channel.getView();
+    }
+
     /*
      * private void eventLoop() throws Exception { BufferedReader in = new
      * BufferedReader(new InputStreamReader(System.in)); while (true) { try {
