@@ -173,17 +173,23 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     private void saveFile(File fileMeta, byte[] file) {
-        System.out.println("Saving file");
-        // Check if file already exists
-        // if not then download
+
         String home = System.getProperty("user.home");
-        String file_loc = home + "/Downloads/test.txt";
-        try (FileOutputStream fos = new FileOutputStream(file_loc)) {
-            fos.write(file);
-            // fos.close // no need, try-with-resources auto close
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        String file_loc = home + "/Downloads/" + fileMeta.getName();
+        System.out.println("Saving file" + file_loc);
+
+        if (new File(file_loc).isFile()) {
+            System.out.println("File already exists");
+            JOptionPane.showMessageDialog(frame, "File already exists", "File already exists",
+                    JOptionPane.ERROR_MESSAGE);
+        } else {
+            try (FileOutputStream fos = new FileOutputStream(file_loc)) {
+                fos.write(file);
+                // fos.close // no need, try-with-resources auto close
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
     }
 
@@ -254,19 +260,23 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     private void uploadFile() {
-        final JFileChooser fc = new JFileChooser();
-        int returnVal = fc.showOpenDialog(frame);
+        final JFileChooser chooser = new JFileChooser();
+        chooser.setMultiSelectionEnabled(true);
+        int returnVal = chooser.showOpenDialog(frame);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-            File f = fc.getSelectedFile();
-            System.out.println("You chose to open this file: " + f.getAbsolutePath());
-            try {
-                byte[] fileContent = Files.readAllBytes(f.toPath());
-                channel.send(f, fileContent);
-                System.out.println("file sent");
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+            File[] files = chooser.getSelectedFiles();
+            for (File file : files) {
+                System.out.println("You chose to open this file: " + file.getAbsolutePath());
+                try {
+                    byte[] fileContent = Files.readAllBytes(file.toPath());
+                    channel.send(file, fileContent);
+                    System.out.println("file sent");
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
+
         }
     }
 
