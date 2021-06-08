@@ -323,6 +323,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
                 try {
                     byte[] fileContent = Files.readAllBytes(file.toPath());
                     channel.send(file, fileContent);
+                    channel.send("FILE INCOMING: " + file.getName());
                 } catch (IOException e) {
                     log.error("Couldn't send file: " + e);
                 }
