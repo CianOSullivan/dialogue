@@ -88,7 +88,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         JPanel panel = new JPanel(); // the panel is not visible in output
 
         JLabel label = new JLabel("Enter Text");
-        tf = new JTextField(60); // accepts upto 10 characters
+        tf = new JTextField(50); // accepts upto 10 characters
 
         sendButton = new JButton("Send");
         text_area = new JTextPane();
@@ -156,14 +156,21 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
                 + "Utilises JGroups for relible group messaging. "
                 + "Any messages sent to one client will appear on other clients that are also online.";
         JOptionPane.showMessageDialog(frame, helpString);
+    }
 
+    private void clearTextArea() {
+        StyledDocument doc = text_area.getStyledDocument();
+        try {
+            doc.remove(0, doc.getLength());
+        } catch (BadLocationException e) {
+            System.out.println("Couldn't insert string");
+        }
     }
 
     public void actionPerformed(ActionEvent e) {
         Object src = e.getSource();
         if (src == clearButton) {
-            text_area.selectAll();
-            text_area.replaceSelection("");
+            clearTextArea();
         } else if (src == sendButton || src == tf) {
             if (!tf.getText().isEmpty()) {
                 channel.send(tf.getText());
