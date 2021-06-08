@@ -8,11 +8,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -31,10 +27,11 @@ import javax.swing.border.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.jgroups.Message;
-
 import com.formdev.flatlaf.FlatDarculaLaf;
 
 public class ChannelWindow extends WindowAdapter implements ActionListener {
+    private final EventLogger log;
+
     JFrame frame;
     JTextPane text_area;
     JTextField tf;
@@ -53,9 +50,10 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     AttributeSet whiteAttributes;
     SecretKey aesKey;
 
-    public ChannelWindow(Channel c, SecretKey key) {
+    public ChannelWindow(Channel c, SecretKey key, EventLogger l) {
         channel = c;
         aesKey = key;
+        log = l;
         FlatDarculaLaf.install();
 
         generateFontAttributes();
@@ -64,7 +62,6 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     private void generateFontAttributes() {
         Color c = Color.decode("#bd93f9");// Color.RED;
-
         StyleContext sc = StyleContext.getDefaultStyleContext();
         purpleAttributes = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
         // purpleAttributes = sc.addAttribute(purpleAttributes,
@@ -85,7 +82,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         // Creating the Frame
         frame = new JFrame("Dialogue");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 800);
+        frame.setSize(1000, 800);
 
         // Creating the MenuBar and adding components
         JMenuBar mb = new JMenuBar();
@@ -157,7 +154,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         frame.addWindowListener(this);
     }
 
-    public void addMessage(Message msg) {
+    public void processMessage(Message msg) {
         try {
             SealedObject sealedContents = (SealedObject) msg.getObject();
             ChannelMessage contents = (ChannelMessage) sealedContents.getObject(aesKey);
@@ -169,7 +166,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
                 printMessage(contents.getMsg());
             }
         } catch (NoSuchAlgorithmException | InvalidKeyException | ClassNotFoundException | IOException e) {
-            System.out.println("Couldn't unseal message" + e);
+            log.error("Couldn't unseal message" + e);
         } catch (ClassCastException ce) {
             ChannelMessage contents = (ChannelMessage) msg.getObject();
             if (contents.isKey()) {
@@ -182,19 +179,17 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
         String home = System.getProperty("user.home");
         String file_loc = home + "/Downloads/" + fileMeta.getName();
-        System.out.println("Saving file" + file_loc);
+        log.info("Saving file" + file_loc);
 
         if (new File(file_loc).isFile()) {
-            System.out.println("File already exists");
+            log.info("File already exists");
             JOptionPane.showMessageDialog(frame, "File already exists", "File already exists",
                     JOptionPane.ERROR_MESSAGE);
         } else {
             try (FileOutputStream fos = new FileOutputStream(file_loc)) {
                 fos.write(file);
-                // fos.close // no need, try-with-resources auto close
             } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                log.error("Couldn't write file: " + e);
             }
         }
     }
@@ -204,7 +199,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         try {
             doc.insertString(doc.getLength(), "[" + author + "]" + ": ", purpleAttributes);
         } catch (BadLocationException e) {
-            System.out.println("Couldn't insert string");
+            log.error("Couldn't insert string");
         }
     }
 
@@ -220,7 +215,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         try {
             doc.insertString(doc.getLength(), msg + "\n", whiteAttributes);
         } catch (BadLocationException e) {
-            System.out.println("Couldn't insert string");
+            log.error("Couldn't insert string");
         }
     }
 
@@ -237,7 +232,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         try {
             doc.remove(0, doc.getLength());
         } catch (BadLocationException e) {
-            System.out.println("Couldn't insert string");
+            log.error("Couldn't insert string");
         }
     }
 
@@ -260,7 +255,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             out.close();
 
         } catch (BadLocationException | IOException e) {
-            System.out.println("Couldn't save transcript");
+            log.error("Couldn't save transcript: " + e);
         }
 
     }
@@ -273,13 +268,11 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             SecretKey newKey = kgen.generateKey();
 
             if (new File("key.txt").isFile()) {
-                System.out.println("Key file already exists");
+                log.warning("Key file already exists");
 
                 int dialogResult = JOptionPane.showConfirmDialog(null, "Key already exists. Overwrite?", "Warning",
                         JOptionPane.YES_NO_OPTION);
                 if (dialogResult == JOptionPane.YES_OPTION) {
-                    // Saving code here
-                    System.out.println("Overwrite");
                     try (FileOutputStream key_file = new FileOutputStream("key.txt")) {
                         key_file.write(newKey.getEncoded());
                     }
@@ -297,8 +290,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             }
 
         } catch (NoSuchAlgorithmException | IOException e) {
-            System.out.println("An error occurred generating key.");
-            e.printStackTrace();
+            log.error("An error occurred generating key: " + e);
         }
 
     }
@@ -306,12 +298,10 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     private void acceptKey(SecretKey key) {
         int dialogResult = JOptionPane.showConfirmDialog(null, "Accept new key?", "Warning", JOptionPane.YES_NO_OPTION);
         if (dialogResult == JOptionPane.YES_OPTION) {
-            System.out.println("Overwriting key");
             try (FileOutputStream key_file = new FileOutputStream("key.txt")) {
                 key_file.write(key.getEncoded());
             } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                log.error("Couldn't accept key: " + e);
             }
             aesKey = key;
             channel.updateKey(aesKey);
@@ -323,23 +313,20 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     private void uploadFile() {
+        log.info("Uploading file");
         final JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(true);
         int returnVal = chooser.showOpenDialog(frame);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             File[] files = chooser.getSelectedFiles();
             for (File file : files) {
-                System.out.println("You chose to open this file: " + file.getAbsolutePath());
                 try {
                     byte[] fileContent = Files.readAllBytes(file.toPath());
                     channel.send(file, fileContent);
-                    System.out.println("file sent");
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    log.error("Couldn't send file: " + e);
                 }
             }
-
         }
     }
 
@@ -355,7 +342,6 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         } else if (src == aboutItem) {
             displayAbout();
         } else if (src == uploadItem) {
-            System.out.println("Uploading file");
             uploadFile();
         } else if (src == listMembers) {
             listMembers();
@@ -372,8 +358,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     public void windowClosing(WindowEvent e) {
-        System.out.println("WindowListener method called: windowClosing.");
+        log.info("WindowListener method called: windowClosing.");
         channel.close();
-        System.out.println("Channel closed");
+        log.info("Channel closed");
     }
 }

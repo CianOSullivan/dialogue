@@ -2,9 +2,7 @@ import org.jgroups.JChannel;
 import org.jgroups.View;
 import org.jgroups.ReceiverAdapter;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
+import java.io.*;
 
 import javax.crypto.Cipher;
 import javax.crypto.SealedObject;
@@ -13,13 +11,16 @@ import javax.crypto.SecretKey;
 import org.jgroups.Message;
 
 public class Channel extends ReceiverAdapter {
+    private final EventLogger log;
+
     JChannel channel;
     ChannelWindow window;
     String user_name = System.getProperty("user.name", "n/a");
     SecretKey aesKey;
 
-    public Channel(SecretKey key) {
+    public Channel(SecretKey key, EventLogger l) {
         aesKey = key;
+        log = l;
     }
 
     public void updateKey(SecretKey newKey) {
@@ -29,28 +30,14 @@ public class Channel extends ReceiverAdapter {
     public void start() throws Exception {
         channel = new JChannel();
         channel.setReceiver(this);
-        channel.connect("ChatChannel");
-        window = new ChannelWindow(this, aesKey);
-
-        // eventLoop();
-        // channel.close();
+        window = new ChannelWindow(this, aesKey, log);
+        channel.connect("ChatChannel"); // This takes a long time
     }
 
     public View getView() {
         return channel.getView();
     }
 
-    /*
-     * private void eventLoop() throws Exception { BufferedReader in = new
-     * BufferedReader(new InputStreamReader(System.in)); while (true) { try {
-     * System.out.print("> "); System.out.flush(); String line =
-     * in.readLine().toLowerCase(); if (line.startsWith("quit") ||
-     * line.startsWith("exit")) break; // line = "[" + user_name + "] " + line;
-     * ChannelMessage message = new ChannelMessage(user_name, line); SealedObject
-     * sealedMessage = new SealedObject() Message msg = new Message(null, null,
-     * message); channel.send(msg); System.out.println("Sent message"); } catch
-     * (Exception e) { } } }
-     */
     public void viewAccepted(View new_view) {
         // System.out.println("** view: " + new_view);
     }
@@ -66,21 +53,20 @@ public class Channel extends ReceiverAdapter {
             ChannelMessage message = new ChannelMessage(user_name, msg);
             SealedObject sealedMessage = new SealedObject(message, cipher);
             channel.send(new Message(null, null, sealedMessage));
-            System.out.println("Sent message");
+            log.info("Sent message");
         } catch (Exception e) {
+            log.error("Couldn't send message: " + e);
+
         }
     }
 
     public void send(SecretKey key) {
         try {
-            Cipher cipher = Cipher.getInstance("AES");
-            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
-
             ChannelMessage message = new ChannelMessage(user_name, key);
-            // SealedObject sealedMessage = new SealedObject(message, cipher);
             channel.send(new Message(null, null, message));
-            System.out.println("Sent message");
+            log.info("Sent SecretKey");
         } catch (Exception e) {
+            log.error("Couldn't send secret key: " + e);
         }
     }
 
@@ -92,18 +78,19 @@ public class Channel extends ReceiverAdapter {
             ChannelMessage message = new ChannelMessage(user_name, fileMeta, msg);
             SealedObject sealedMessage = new SealedObject(message, cipher);
             channel.send(new Message(null, null, sealedMessage));
-            System.out.println("Sent message");
+            log.info("Sent file");
         } catch (Exception e) {
+            log.error("Couldn't send file: " + e);
         }
     }
 
     public void receive(Message msg) {
-
-        window.addMessage(msg);
-        System.out.println("MSG RECEIVED");
+        window.processMessage(msg);
+        log.info("Message received");
     }
 
     public void close() {
         channel.close();
+        log.info("Channel closed");
     }
 }
