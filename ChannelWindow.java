@@ -1,3 +1,5 @@
+import javax.crypto.SealedObject;
+import javax.crypto.SecretKey;
 import javax.swing.*;
 import java.awt.*;
 
@@ -5,6 +7,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.awt.event.WindowAdapter;
 
 import javax.swing.text.AttributeSet;
@@ -32,9 +37,11 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     Channel channel;
     AttributeSet purpleAttributes;
     AttributeSet whiteAttributes;
+    SecretKey aesKey;
 
-    public ChannelWindow(Channel c) {
+    public ChannelWindow(Channel c, SecretKey key) {
         channel = c;
+        aesKey = key;
         FlatDarculaLaf.install();
 
         generateFontAttributes();
@@ -119,10 +126,16 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     public void addMessage(Message msg) {
-        ChannelMessage contents = (ChannelMessage) msg.getObject();
+        try {
+            SealedObject sealedContents = (SealedObject) msg.getObject();
+            ChannelMessage contents = (ChannelMessage) sealedContents.getObject(aesKey);
 
-        printUsername(contents.getAuthor());
-        printMessage(contents.getMsg());
+            printUsername(contents.getAuthor());
+            printMessage(contents.getMsg());
+        } catch (NoSuchAlgorithmException | InvalidKeyException | ClassNotFoundException | IOException e) {
+            System.out.println("Couldn't unseal message" + e);
+        }
+
     }
 
     private void printUsername(String author) {
