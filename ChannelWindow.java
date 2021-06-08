@@ -7,9 +7,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.awt.event.WindowAdapter;
 
 import javax.swing.text.AttributeSet;
@@ -209,6 +213,24 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         JOptionPane.showMessageDialog(frame, members);
     }
 
+    private void saveTranscript() {
+
+        try {
+            StyledDocument doc = text_area.getStyledDocument();
+            String text = doc.getText(0, doc.getLength());
+            String home = System.getProperty("user.home");
+            String file_loc = home + "/Downloads/chat_transcript_"
+                    + new SimpleDateFormat("dd-MM-yyyy-HH:mm:ss").format(new Date()) + ".txt";
+            BufferedWriter out = new BufferedWriter(new FileWriter(file_loc));
+            out.write(text); // Replace with the string
+            out.close();
+
+        } catch (BadLocationException | IOException e) {
+            System.out.println("Couldn't save transcript");
+        }
+
+    }
+
     public void actionPerformed(ActionEvent e) {
         Object src = e.getSource();
         if (src == clearButton) {
@@ -222,6 +244,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             displayAbout();
         } else if (src == listMembers) {
             listMembers();
+        } else if (src == saveItem) {
+            saveTranscript();
         } else if (src == exitItem) {
             channel.close();
             System.exit(0);
