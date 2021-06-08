@@ -1,11 +1,15 @@
 import java.io.File;
 import java.io.Serializable;
 
+import javax.crypto.SecretKey;
+
 public class ChannelMessage implements Serializable {
     private String msg;
     private String name;
     private byte[] file;
     private boolean isFile = false;
+    private boolean isKey = false;
+    private SecretKey key;
     private File fileMeta;
 
     public ChannelMessage(String username, String message) {
@@ -15,7 +19,15 @@ public class ChannelMessage implements Serializable {
 
     public ChannelMessage(String username, File fileMeta, byte[] f) {
         name = username;
-        setFile(fileMeta, f);
+        this.isFile = true;
+        this.file = f;
+        this.fileMeta = fileMeta;
+    }
+
+    public ChannelMessage(String username, SecretKey k) {
+        isKey = true;
+        name = username;
+        key = k;
     }
 
     public String getAuthor() {
@@ -26,14 +38,12 @@ public class ChannelMessage implements Serializable {
         return msg;
     }
 
-    public byte[] getFile() {
-        return file;
+    public SecretKey getKey() {
+        return key;
     }
 
-    public void setFile(File fm, byte[] f) {
-        this.isFile = true;
-        this.file = f;
-        this.fileMeta = fm;
+    public byte[] getFile() {
+        return file;
     }
 
     public File getFileMeta() {
@@ -42,6 +52,10 @@ public class ChannelMessage implements Serializable {
 
     public boolean isFile() {
         return isFile;
+    }
+
+    public boolean isKey() {
+        return isKey;
     }
 
     @Override

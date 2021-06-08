@@ -164,6 +164,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             if (contents.isFile()) {
                 saveFile(contents.getFileMeta(), contents.getFile());
 
+            } else if (contents.isKey()) {
+                acceptKey(contents.getKey());
             } else {
                 printUsername(contents.getAuthor());
                 printMessage(contents.getMsg());
@@ -298,6 +300,25 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     }
 
+    private void acceptKey(SecretKey key) {
+        int dialogResult = JOptionPane.showConfirmDialog(null, "Accept new key?", "Warning", JOptionPane.YES_NO_OPTION);
+        if (dialogResult == JOptionPane.YES_OPTION) {
+            System.out.println("Overwriting key");
+            try (FileOutputStream key_file = new FileOutputStream("key.txt")) {
+                key_file.write(key.getEncoded());
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            aesKey = key;
+            channel.updateKey(aesKey);
+        }
+    }
+
+    private void syncKey() {
+        channel.send(aesKey);
+    }
+
     private void uploadFile() {
         final JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(true);
@@ -339,6 +360,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             makeKey();
         } else if (src == saveItem) {
             saveTranscript();
+        } else if (src == syncKeyItem) {
+            syncKey();
         } else if (src == exitItem) {
             channel.close();
             System.exit(0);
