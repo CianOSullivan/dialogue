@@ -77,8 +77,8 @@ public class Channel extends ReceiverAdapter {
             cipher.init(Cipher.ENCRYPT_MODE, aesKey);
 
             ChannelMessage message = new ChannelMessage(user_name, key);
-            SealedObject sealedMessage = new SealedObject(message, cipher);
-            channel.send(new Message(null, null, sealedMessage));
+            // SealedObject sealedMessage = new SealedObject(message, cipher);
+            channel.send(new Message(null, null, message));
             System.out.println("Sent message");
         } catch (Exception e) {
         }

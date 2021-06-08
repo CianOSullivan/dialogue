@@ -164,14 +164,17 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             if (contents.isFile()) {
                 saveFile(contents.getFileMeta(), contents.getFile());
 
-            } else if (contents.isKey()) {
-                acceptKey(contents.getKey());
             } else {
                 printUsername(contents.getAuthor());
                 printMessage(contents.getMsg());
             }
         } catch (NoSuchAlgorithmException | InvalidKeyException | ClassNotFoundException | IOException e) {
             System.out.println("Couldn't unseal message" + e);
+        } catch (ClassCastException ce) {
+            ChannelMessage contents = (ChannelMessage) msg.getObject();
+            if (contents.isKey()) {
+                acceptKey(contents.getKey());
+            }
         }
     }
 
