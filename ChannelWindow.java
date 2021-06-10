@@ -27,8 +27,13 @@ import javax.swing.border.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.jgroups.Message;
+import org.jgroups.Address;
+
 import com.formdev.flatlaf.FlatDarculaLaf;
 
+/**
+ * Generates a window to the channel and
+ */
 public class ChannelWindow extends WindowAdapter implements ActionListener {
     private final EventLogger log;
 
@@ -61,19 +66,13 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     private void generateFontAttributes() {
-        Color c = Color.decode("#bd93f9");// Color.RED;
         StyleContext sc = StyleContext.getDefaultStyleContext();
-        purpleAttributes = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
-        // purpleAttributes = sc.addAttribute(purpleAttributes,
-        // StyleConstants.FontFamily, "Lucida Console");
+
+        purpleAttributes = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground,
+                Color.decode("#bd93f9"));
         purpleAttributes = sc.addAttribute(purpleAttributes, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED);
         purpleAttributes = sc.addAttribute(purpleAttributes, StyleConstants.Size, 15);
-
-        c = Color.decode("#f8f8f2");
-        sc = StyleContext.getDefaultStyleContext();
-        whiteAttributes = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
-        // whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.FontFamily,
-        // "Lucida Console");
+        whiteAttributes = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, Color.decode("#f8f8f2"));
         whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED);
         whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.Size, 15);
     }
@@ -156,11 +155,12 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     public void processMessage(Message msg) {
         try {
+            Address source = msg.getSrc();
             SealedObject sealedContents = (SealedObject) msg.getObject();
             ChannelMessage contents = (ChannelMessage) sealedContents.getObject(aesKey);
             if (contents.isFile()) {
-                saveFile(contents.getFileMeta(), contents.getFile());
-
+                if (source != channel.getLocalAddress())
+                    saveFile(contents.getFileMeta(), contents.getFile());
             } else {
                 printUsername(contents.getAuthor());
                 printMessage(contents.getMsg());
@@ -176,20 +176,24 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     private void saveFile(File fileMeta, byte[] file) {
-
-        String home = System.getProperty("user.home");
-        String file_loc = home + "/Downloads/" + fileMeta.getName();
+        String file_loc = System.getProperty("user.home") + "/Downloads/" + fileMeta.getName();
         log.info("Saving file" + file_loc);
 
+        // Also check if src is this machine
         if (new File(file_loc).isFile()) {
             log.info("File already exists");
             JOptionPane.showMessageDialog(frame, "File already exists", "File already exists",
                     JOptionPane.ERROR_MESSAGE);
         } else {
-            try (FileOutputStream fos = new FileOutputStream(file_loc)) {
-                fos.write(file);
-            } catch (IOException e) {
-                log.error("Couldn't write file: " + e);
+            // if accept file == yes
+            int dialogResult = JOptionPane.showConfirmDialog(null, "Accept file?: " + fileMeta.getName(), "Warning",
+                    JOptionPane.YES_NO_OPTION);
+            if (dialogResult == JOptionPane.YES_OPTION) {
+                try (FileOutputStream fos = new FileOutputStream(file_loc)) {
+                    fos.write(file);
+                } catch (IOException e) {
+                    log.error("Couldn't write file: " + e);
+                }
             }
         }
     }
@@ -204,12 +208,6 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     private void printMessage(String msg) {
-        // int len = text_area.getDocument().getLength();
-        // text_area.setCaretPosition(len);
-        // text_area.setCharacterAttributes(whiteAttributes, false);
-        // text_area.replaceSelection(msg + "\n");
-        // StyledDocument doc = text_area.getStyledDocument();
-        // doc.insertString(author, doc.getLength(), purpleAttributes);
         StyledDocument doc = text_area.getStyledDocument();
 
         try {
@@ -237,13 +235,16 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     private void listMembers() {
-        String members = "Members connected to cluster: " + channel.getView().getMembers().size();
+        String members = "Members connected to cluster: \n";
+
+        for (Address a : channel.getView().getMembers()) {
+            members += a.toString() + "\n";
+        }
 
         JOptionPane.showMessageDialog(frame, members);
     }
 
     private void saveTranscript() {
-
         try {
             StyledDocument doc = text_area.getStyledDocument();
             String text = doc.getText(0, doc.getLength());
@@ -292,7 +293,6 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         } catch (NoSuchAlgorithmException | IOException e) {
             log.error("An error occurred generating key: " + e);
         }
-
     }
 
     private void acceptKey(SecretKey key) {
@@ -312,14 +312,17 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         channel.send(aesKey);
     }
 
+    /**
+     * Upload files to the group
+     */
     private void uploadFile() {
-        log.info("Uploading file");
+        log.info("Attempting file upload");
         final JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(true);
-        int returnVal = chooser.showOpenDialog(frame);
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
-            File[] files = chooser.getSelectedFiles();
-            for (File file : files) {
+
+        // Upload files if selected
+        if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+            for (File file : chooser.getSelectedFiles()) {
                 try {
                     byte[] fileContent = Files.readAllBytes(file.toPath());
                     channel.send(file, fileContent);
@@ -331,6 +334,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    /**
+     * Run appropriate method when buttons are pressed
+     */
     public void actionPerformed(ActionEvent e) {
         Object src = e.getSource();
         if (src == clearButton) {
@@ -358,6 +364,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    /**
+     * Close the channel properly before closing the window
+     */
     public void windowClosing(WindowEvent e) {
         log.info("WindowListener method called: windowClosing.");
         channel.close();

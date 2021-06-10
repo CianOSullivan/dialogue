@@ -2,9 +2,15 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.logging.*;
 
+/**
+ * Simplified logging commands
+ */
 public class EventLogger {
     private final Logger log = Logger.getLogger(this.getClass().getName());
 
+    /**
+     * Create a new logger for this class
+     */
     public EventLogger() {
         setupLogger();
     }

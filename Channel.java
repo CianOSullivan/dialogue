@@ -9,9 +9,11 @@ import javax.crypto.SealedObject;
 import javax.crypto.SecretKey;
 
 import org.jgroups.Message;
+import org.jgroups.Address;
 
 public class Channel extends ReceiverAdapter {
     private final EventLogger log;
+    private Address local_address;
 
     JChannel channel;
     ChannelWindow window;
@@ -32,10 +34,15 @@ public class Channel extends ReceiverAdapter {
         channel.setReceiver(this);
         window = new ChannelWindow(this, aesKey, log);
         channel.connect("ChatChannel"); // This takes a long time
+        local_address = channel.getAddress();
     }
 
     public View getView() {
         return channel.getView();
+    }
+
+    public Address getLocalAddress() {
+        return local_address;
     }
 
     public void viewAccepted(View new_view) {
