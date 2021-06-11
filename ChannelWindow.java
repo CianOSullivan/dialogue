@@ -110,11 +110,14 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
         // Making bottom bar with text field and buttons
         JPanel bottomBar = new JPanel(new BorderLayout(10, 10)); // the panel is not visible in output
-        JPanel bottomBarButtons = new JPanel(); // the panel is not visible in output
+        JPanel bottomBarButtons = new JPanel(new BorderLayout(10, 10)); // the panel is not visible in output
+        bottomBarButtons.setBorder(new EmptyBorder(0, 10, 0, 10));
 
         textField = new JTextField(50);
-        textField.setBorder(
-                BorderFactory.createCompoundBorder(textField.getBorder(), BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+        System.out.println(textField.getPreferredSize().toString());
+        bottomBar.setPreferredSize(new Dimension(-1, 29));
+        bottomBarButtons.setPreferredSize(new Dimension(175, 29));
+
         sendButton = new JButton("Send");
         text_area = new JTextPane();
         text_area.setEditable(false);
@@ -139,10 +142,11 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         JLabel l = new JLabel("Enter Message: ");
         l.setBorder(new EmptyBorder(0, 10, 0, 0));
         // Add using flow layout
+
         bottomBar.add(l, BorderLayout.WEST);
         bottomBar.add(textField, BorderLayout.CENTER);
-        bottomBarButtons.add(sendButton);
-        bottomBarButtons.add(clearButton);
+        bottomBarButtons.add(sendButton, BorderLayout.WEST);
+        bottomBarButtons.add(clearButton, BorderLayout.EAST);
         bottomBar.add(bottomBarButtons, BorderLayout.EAST);
 
         // Adding Components to the frame.
