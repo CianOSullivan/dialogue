@@ -39,7 +39,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     JFrame frame;
     JTextPane text_area;
-    JTextField tf;
+    JTextField textField;
     JMenuItem exitItem;
     JMenuItem aboutItem;
     JMenuItem saveItem;
@@ -84,24 +84,22 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         frame.setSize(1000, 800);
 
         // Creating the MenuBar and adding components
-        JMenuBar mb = new JMenuBar();
+        JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenu toolsMenu = new JMenu("Tools");
-
         JMenu helpMenu = new JMenu("Help");
 
         uploadItem = new JMenuItem("Upload file");
         genKeyItem = new JMenuItem("Generate new key");
         syncKeyItem = new JMenuItem("Sync key to all channel members");
         listMembers = new JMenuItem("List all channel members");
-
         saveItem = new JMenuItem("Save as");
         aboutItem = new JMenuItem("About");
         exitItem = new JMenuItem("Exit");
 
-        mb.add(fileMenu);
-        mb.add(toolsMenu);
-        mb.add(helpMenu);
+        menuBar.add(fileMenu);
+        menuBar.add(toolsMenu);
+        menuBar.add(helpMenu);
         fileMenu.add(uploadItem);
         fileMenu.add(saveItem);
         fileMenu.add(exitItem);
@@ -110,21 +108,13 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         toolsMenu.add(listMembers);
         helpMenu.add(aboutItem);
 
-        uploadItem.addActionListener(this);
-        saveItem.addActionListener(this);
-        genKeyItem.addActionListener(this);
-        syncKeyItem.addActionListener(this);
-        listMembers.addActionListener(this);
+        // Making bottom bar with text field and buttons
+        JPanel bottomBar = new JPanel(new BorderLayout(10, 10)); // the panel is not visible in output
+        JPanel bottomBarButtons = new JPanel(); // the panel is not visible in output
 
-        aboutItem.addActionListener(this);
-        exitItem.addActionListener(this);
-
-        // Creating the panel at bottom and adding components
-        JPanel panel = new JPanel(); // the panel is not visible in output
-
-        JLabel label = new JLabel("Enter Text");
-        tf = new JTextField(50); // accepts upto 10 characters
-
+        textField = new JTextField(50);
+        textField.setBorder(
+                BorderFactory.createCompoundBorder(textField.getBorder(), BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         sendButton = new JButton("Send");
         text_area = new JTextPane();
         text_area.setEditable(false);
@@ -133,20 +123,31 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         clearButton = new JButton("Clear");
+
+        // Add action listeners to all buttons
+        uploadItem.addActionListener(this);
+        saveItem.addActionListener(this);
+        genKeyItem.addActionListener(this);
+        syncKeyItem.addActionListener(this);
+        listMembers.addActionListener(this);
+        aboutItem.addActionListener(this);
+        exitItem.addActionListener(this);
         sendButton.addActionListener(this);
         clearButton.addActionListener(this);
-        tf.addActionListener(this);
+        textField.addActionListener(this);
 
-        panel.add(label); // Components Added using Flow Layout
-        panel.add(tf);
-        panel.add(sendButton);
-        panel.add(clearButton);
-
-        // Text Area at the Center
+        JLabel l = new JLabel("Enter Message: ");
+        l.setBorder(new EmptyBorder(0, 10, 0, 0));
+        // Add using flow layout
+        bottomBar.add(l, BorderLayout.WEST);
+        bottomBar.add(textField, BorderLayout.CENTER);
+        bottomBarButtons.add(sendButton);
+        bottomBarButtons.add(clearButton);
+        bottomBar.add(bottomBarButtons, BorderLayout.EAST);
 
         // Adding Components to the frame.
-        frame.getContentPane().add(BorderLayout.SOUTH, panel);
-        frame.getContentPane().add(BorderLayout.NORTH, mb);
+        frame.getContentPane().add(BorderLayout.SOUTH, bottomBar);
+        frame.getContentPane().add(BorderLayout.NORTH, menuBar);
         frame.getContentPane().add(BorderLayout.CENTER, scroll);
         frame.setVisible(true);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -341,10 +342,10 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         Object src = e.getSource();
         if (src == clearButton) {
             clearTextArea();
-        } else if (src == sendButton || src == tf) {
-            if (!tf.getText().isEmpty()) {
-                channel.send(tf.getText());
-                tf.setText("");
+        } else if (src == sendButton || src == textField) {
+            if (!textField.getText().isEmpty()) {
+                channel.send(textField.getText());
+                textField.setText("");
             }
         } else if (src == aboutItem) {
             displayAbout();
