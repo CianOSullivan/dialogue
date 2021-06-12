@@ -13,7 +13,9 @@ import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.awt.event.WindowAdapter;
 
 import javax.swing.text.AttributeSet;
@@ -27,6 +29,7 @@ import javax.swing.border.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.jgroups.Message;
+import org.jgroups.View;
 import org.jgroups.Address;
 
 import com.formdev.flatlaf.FlatDarculaLaf;
@@ -37,23 +40,26 @@ import com.formdev.flatlaf.FlatDarculaLaf;
 public class ChannelWindow extends WindowAdapter implements ActionListener {
     private final EventLogger log;
 
-    JFrame frame;
-    JTextPane text_area; // The main chat text area
-    JTextField textField; // Text field to enter new messages
-    JMenuItem exitItem;
-    JMenuItem aboutItem;
-    JMenuItem saveItem;
-    JMenuItem uploadItem;
-    JMenuItem syncKeyItem;
-    JMenuItem genKeyItem;
-    JMenuItem listMembers;
+    private JFrame frame;
+    private JTextPane text_area; // The main chat text area
+    private JTextField textField; // Text field to enter new messages
+    private JMenuItem exitItem;
+    private JMenuItem aboutItem;
+    private JMenuItem saveItem;
+    private JMenuItem uploadItem;
+    private JMenuItem syncKeyItem;
+    private JMenuItem genKeyItem;
+    private JMenuItem listMembers;
 
-    JButton sendButton;
-    JButton clearButton;
-    Channel channel;
-    AttributeSet purpleAttributes;
-    AttributeSet whiteAttributes;
-    SecretKey aesKey; // The symmetric key for encrypting/decrypting messages
+    private JButton sendButton;
+    private JButton clearButton;
+    private Channel channel;
+    private AttributeSet purpleAttributes;
+    private AttributeSet whiteAttributes;
+    private SecretKey aesKey; // The symmetric key for encrypting/decrypting messages
+
+    private boolean deviceListActive = false;
+    private JPanel deviceList;
 
     /**
      * Make a new Channel Window
@@ -100,6 +106,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenu toolsMenu = new JMenu("Tools");
+        JMenu viewMenu = new JMenu("View");
         JMenu helpMenu = new JMenu("Help");
 
         uploadItem = new JMenuItem("Upload file");
@@ -112,13 +119,14 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
         menuBar.add(fileMenu);
         menuBar.add(toolsMenu);
+        menuBar.add(viewMenu);
         menuBar.add(helpMenu);
         fileMenu.add(uploadItem);
         fileMenu.add(saveItem);
         fileMenu.add(exitItem);
         toolsMenu.add(genKeyItem);
         toolsMenu.add(syncKeyItem);
-        toolsMenu.add(listMembers);
+        viewMenu.add(listMembers);
         helpMenu.add(aboutItem);
 
         // Making bottom bar with text field and buttons
@@ -279,17 +287,46 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    private void addDeviceList(String members) {
+        deviceList = new JPanel(new BorderLayout()); // the panel is not visible in output
+        deviceList.add(new JTextArea(members));
+        frame.getContentPane().add(BorderLayout.EAST, deviceList);
+        frame.invalidate();
+        frame.validate();
+        frame.repaint();
+        deviceListActive = true;
+
+    }
+
+    private void removeDeviceList() {
+        frame.getContentPane().remove(deviceList);
+        frame.invalidate();
+        frame.validate();
+        frame.repaint();
+        deviceListActive = false;
+    }
+
     /**
      * List the members currently connected to the channel
      */
     private void listMembers() {
-        String members = "Members connected to cluster: \n";
+        if (deviceListActive) {
+            removeDeviceList();
+        } else {
+            String members = "Members connected to cluster: \n\n";
+            if (!channel.isConnected()) {
+                JOptionPane.showMessageDialog(frame, "The channel has not been connected yet, slow down!",
+                        "Channel not connected", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
-        for (Address a : channel.getView().getMembers()) {
-            members += a.toString() + "\n";
+            for (Address a : channel.getView().getMembers()) {
+                members += a.toString() + "\n";
+            }
+
+            addDeviceList(members);
         }
 
-        JOptionPane.showMessageDialog(frame, members);
     }
 
     /**

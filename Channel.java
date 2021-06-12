@@ -21,6 +21,7 @@ public class Channel extends ReceiverAdapter {
     ChannelWindow window;
     String user_name = System.getProperty("user.name", "n/a");
     SecretKey aesKey;
+    private boolean connected = false;
 
     /**
      * Make a new chat channel
@@ -52,6 +53,7 @@ public class Channel extends ReceiverAdapter {
         channel.setReceiver(this);
         window = new ChannelWindow(this, aesKey, log);
         channel.connect("ChatChannel"); // This takes a long time
+        connected = true;
         local_address = channel.getAddress();
     }
 
@@ -62,6 +64,10 @@ public class Channel extends ReceiverAdapter {
      */
     public View getView() {
         return channel.getView();
+    }
+
+    public boolean isConnected() {
+        return connected;
     }
 
     /**
