@@ -32,14 +32,14 @@ import org.jgroups.Address;
 import com.formdev.flatlaf.FlatDarculaLaf;
 
 /**
- * Generates a window to the channel and
+ * Generates a window to the channel and handles incoming messages
  */
 public class ChannelWindow extends WindowAdapter implements ActionListener {
     private final EventLogger log;
 
     JFrame frame;
-    JTextPane text_area;
-    JTextField textField;
+    JTextPane text_area; // The main chat text area
+    JTextField textField; // Text field to enter new messages
     JMenuItem exitItem;
     JMenuItem aboutItem;
     JMenuItem saveItem;
@@ -53,8 +53,15 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     Channel channel;
     AttributeSet purpleAttributes;
     AttributeSet whiteAttributes;
-    SecretKey aesKey;
+    SecretKey aesKey; // The symmetric key for encrypting/decrypting messages
 
+    /**
+     * Make a new Channel Window
+     * 
+     * @param c   the JGroups channel
+     * @param key the symmetric key
+     * @param l   the logfile logger
+     */
     public ChannelWindow(Channel c, SecretKey key, EventLogger l) {
         channel = c;
         aesKey = key;
@@ -65,6 +72,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         makeWindow();
     }
 
+    /**
+     * Generate different font colour attributes
+     */
     private void generateFontAttributes() {
         StyleContext sc = StyleContext.getDefaultStyleContext();
 
@@ -77,6 +87,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         whiteAttributes = sc.addAttribute(whiteAttributes, StyleConstants.Size, 15);
     }
 
+    /**
+     * Make the GUI window with all relevant elements
+     */
     private void makeWindow() {
         // Creating the Frame
         frame = new JFrame("Dialogue");
@@ -114,10 +127,6 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         bottomBarButtons.setBorder(new EmptyBorder(0, 10, 0, 10));
 
         textField = new JTextField(50);
-        System.out.println(textField.getPreferredSize().toString());
-        bottomBar.setPreferredSize(new Dimension(-1, 29));
-        bottomBarButtons.setPreferredSize(new Dimension(175, 29));
-
         sendButton = new JButton("Send");
         text_area = new JTextPane();
         text_area.setEditable(false);
@@ -139,11 +148,11 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         clearButton.addActionListener(this);
         textField.addActionListener(this);
 
-        JLabel l = new JLabel("Enter Message: ");
-        l.setBorder(new EmptyBorder(0, 10, 0, 0));
-        // Add using flow layout
+        JLabel enter = new JLabel("Enter Message: ");
+        enter.setBorder(new EmptyBorder(0, 10, 0, 0));
 
-        bottomBar.add(l, BorderLayout.WEST);
+        // Add elements to bottom bar
+        bottomBar.add(enter, BorderLayout.WEST);
         bottomBar.add(textField, BorderLayout.CENTER);
         bottomBarButtons.add(sendButton, BorderLayout.WEST);
         bottomBarButtons.add(clearButton, BorderLayout.EAST);
@@ -158,21 +167,30 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         frame.addWindowListener(this);
     }
 
+    /**
+     * Accepts messages, files and symmetric keys and handles them appropriately
+     * 
+     * @param msg The sealed channel message
+     */
     public void processMessage(Message msg) {
         try {
             Address source = msg.getSrc();
             SealedObject sealedContents = (SealedObject) msg.getObject();
             ChannelMessage contents = (ChannelMessage) sealedContents.getObject(aesKey);
+
             if (contents.isFile()) {
+                // Save the file if this client didn't send it
                 if (source != channel.getLocalAddress())
                     saveFile(contents.getFileMeta(), contents.getFile());
             } else {
+                // Add the message to the text area
                 printUsername(contents.getAuthor());
                 printMessage(contents.getMsg());
             }
         } catch (NoSuchAlgorithmException | InvalidKeyException | ClassNotFoundException | IOException e) {
             log.error("Couldn't unseal message" + e);
         } catch (ClassCastException ce) {
+            // Then it must be an unsealed message as it is a key
             ChannelMessage contents = (ChannelMessage) msg.getObject();
             if (contents.isKey()) {
                 acceptKey(contents.getKey());
@@ -180,6 +198,12 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    /**
+     * Save a file to the downloads folder
+     * 
+     * @param fileMeta the file metadata
+     * @param file     the byte array of the file
+     */
     private void saveFile(File fileMeta, byte[] file) {
         String file_loc = System.getProperty("user.home") + "/Downloads/" + fileMeta.getName();
         log.info("Saving file" + file_loc);
@@ -190,7 +214,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             JOptionPane.showMessageDialog(frame, "File already exists", "File already exists",
                     JOptionPane.ERROR_MESSAGE);
         } else {
-            // if accept file == yes
+            // Ask to accept file
             int dialogResult = JOptionPane.showConfirmDialog(null, "Accept file?: " + fileMeta.getName(), "Warning",
                     JOptionPane.YES_NO_OPTION);
             if (dialogResult == JOptionPane.YES_OPTION) {
@@ -203,6 +227,11 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    /**
+     * Print the username in purple
+     * 
+     * @param author the username string
+     */
     private void printUsername(String author) {
         StyledDocument doc = text_area.getStyledDocument();
         try {
@@ -212,6 +241,11 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    /**
+     * Print the message in white
+     * 
+     * @param msg the message string
+     */
     private void printMessage(String msg) {
         StyledDocument doc = text_area.getStyledDocument();
 
@@ -222,6 +256,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    /**
+     * Display the about dialogue
+     */
     private void displayAbout() {
         String helpString = "Dialogue - Local network chat application.\n\n"
                 + "Allows for easy communication between multiple computers on a local network. "
@@ -230,6 +267,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         JOptionPane.showMessageDialog(frame, helpString);
     }
 
+    /**
+     * Wipe all text from the text area
+     */
     private void clearTextArea() {
         StyledDocument doc = text_area.getStyledDocument();
         try {
@@ -239,6 +279,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    /**
+     * List the members currently connected to the channel
+     */
     private void listMembers() {
         String members = "Members connected to cluster: \n";
 
@@ -249,12 +292,17 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         JOptionPane.showMessageDialog(frame, members);
     }
 
+    /**
+     * Save the current text transcript to the downloads folder
+     */
     private void saveTranscript() {
         try {
             StyledDocument doc = text_area.getStyledDocument();
             String text = doc.getText(0, doc.getLength());
-            String home = System.getProperty("user.home");
-            String file_loc = home + "/Downloads/chat_transcript_"
+
+            // Need to change file_loc for windows
+
+            String file_loc = System.getProperty("user.home") + "/Downloads/chat_transcript_"
                     + new SimpleDateFormat("dd-MM-yyyy-HH:mm:ss").format(new Date()) + ".txt";
             BufferedWriter out = new BufferedWriter(new FileWriter(file_loc));
             out.write(text); // Replace with the string
@@ -266,6 +314,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     }
 
+    /**
+     * Generate a new symmetric key
+     */
     private void makeKey() {
         // Generate a new cipher and add key to server
         try {
@@ -276,6 +327,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             if (new File("key.txt").isFile()) {
                 log.warning("Key file already exists");
 
+                // Ask if the key file should be overwritten
                 int dialogResult = JOptionPane.showConfirmDialog(null, "Key already exists. Overwrite?", "Warning",
                         JOptionPane.YES_NO_OPTION);
                 if (dialogResult == JOptionPane.YES_OPTION) {
@@ -285,21 +337,23 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
                     aesKey = newKey;
                     channel.updateKey(aesKey);
                 }
-
             } else {
                 try (FileOutputStream key_file = new FileOutputStream("key.txt")) {
                     key_file.write(newKey.getEncoded());
                 }
                 aesKey = newKey;
                 channel.updateKey(aesKey);
-
             }
-
         } catch (NoSuchAlgorithmException | IOException e) {
             log.error("An error occurred generating key: " + e);
         }
     }
 
+    /**
+     * Accept a new symmetric key
+     * 
+     * @param key the new key
+     */
     private void acceptKey(SecretKey key) {
         int dialogResult = JOptionPane.showConfirmDialog(null, "Accept new key?", "Warning", JOptionPane.YES_NO_OPTION);
         if (dialogResult == JOptionPane.YES_OPTION) {
@@ -313,12 +367,15 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    /**
+     * Send this clients key to the channel
+     */
     private void syncKey() {
         channel.send(aesKey);
     }
 
     /**
-     * Upload files to the group
+     * Upload files to the channel
      */
     private void uploadFile() {
         log.info("Attempting file upload");
