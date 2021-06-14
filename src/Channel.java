@@ -66,6 +66,21 @@ public class Channel extends ReceiverAdapter {
         return channel.getView();
     }
 
+    public String getName() {
+        return channel.getClusterName();
+    }
+
+    public void setChannel(String name) {
+        try {
+            channel.disconnect();
+            channel.connect(name);
+            log.info("Channel set to " + name);
+        } catch (Exception e) {
+            log.error("Could not set channel to " + name);
+        }
+
+    }
+
     public boolean isConnected() {
         return connected;
     }

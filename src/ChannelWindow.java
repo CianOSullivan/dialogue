@@ -49,6 +49,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     private JMenuItem uploadItem;
     private JMenuItem syncKeyItem;
     private JMenuItem genKeyItem;
+    private JMenuItem changeChanItem;
     private JMenuItem listMembers;
 
     private JButton sendButton;
@@ -112,6 +113,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         uploadItem = new JMenuItem("Upload file");
         genKeyItem = new JMenuItem("Generate new key");
         syncKeyItem = new JMenuItem("Sync key to all channel members");
+        changeChanItem = new JMenuItem("Change the messaging channel");
+
         listMembers = new JMenuItem("List all channel members");
         saveItem = new JMenuItem("Save as");
         aboutItem = new JMenuItem("About");
@@ -126,6 +129,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         fileMenu.add(exitItem);
         toolsMenu.add(genKeyItem);
         toolsMenu.add(syncKeyItem);
+        toolsMenu.add(changeChanItem);
         viewMenu.add(listMembers);
         helpMenu.add(aboutItem);
 
@@ -149,6 +153,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         saveItem.addActionListener(this);
         genKeyItem.addActionListener(this);
         syncKeyItem.addActionListener(this);
+        changeChanItem.addActionListener(this);
         listMembers.addActionListener(this);
         aboutItem.addActionListener(this);
         exitItem.addActionListener(this);
@@ -271,7 +276,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         String helpString = "Dialogue - Local network chat application.\n\n"
                 + "Allows for easy communication between multiple computers on a local network. "
                 + "Utilises JGroups for relible group messaging. "
-                + "Any messages sent to one client will appear on other clients that are also online.";
+                + "Any messages sent from one client will appear on other clients that are also online.";
         JOptionPane.showMessageDialog(frame, helpString);
     }
 
@@ -287,9 +292,17 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         }
     }
 
+    /**
+     * Add the device list to the right of the chat window
+     * 
+     * @param members the members in the channel
+     */
     private void addDeviceList(String members) {
         deviceList = new JPanel(new BorderLayout()); // the panel is not visible in output
-        deviceList.add(new JTextArea(members));
+        JTextArea devices = new JTextArea(members);
+        devices.setEditable(false);
+
+        deviceList.add(devices);
         frame.getContentPane().add(BorderLayout.EAST, deviceList);
         frame.invalidate();
         frame.validate();
@@ -298,6 +311,9 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     }
 
+    /**
+     * Delete the active device list from the window
+     */
     private void removeDeviceList() {
         frame.getContentPane().remove(deviceList);
         frame.invalidate();
@@ -326,7 +342,14 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
             addDeviceList(members);
         }
+    }
 
+    private void changeChannel() {
+        String msg = "Channel is currently set to " + channel.getName() + ".\n\nPlease enter the new channel name: ";
+        String new_name = JOptionPane.showInputDialog(msg);
+        if (new_name != null) {
+            channel.setChannel(new_name);
+        }
     }
 
     /**
@@ -337,18 +360,17 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             StyledDocument doc = text_area.getStyledDocument();
             String text = doc.getText(0, doc.getLength());
 
-            // Need to change file_loc for windows
+            // TODO: change file_loc for Windows
 
             String file_loc = System.getProperty("user.home") + "/Downloads/chat_transcript_"
                     + new SimpleDateFormat("dd-MM-yyyy-HH:mm:ss").format(new Date()) + ".txt";
             BufferedWriter out = new BufferedWriter(new FileWriter(file_loc));
             out.write(text); // Replace with the string
             out.close();
-
+            JOptionPane.showMessageDialog(frame, "Chat transcript has been downloaded.");
         } catch (BadLocationException | IOException e) {
             log.error("Couldn't save transcript: " + e);
         }
-
     }
 
     /**
@@ -449,6 +471,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             displayAbout();
         } else if (src == uploadItem) {
             uploadFile();
+        } else if (src == changeChanItem) {
+            changeChannel();
         } else if (src == listMembers) {
             listMembers();
         } else if (src == genKeyItem) {
