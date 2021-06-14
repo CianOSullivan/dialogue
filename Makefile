@@ -1,7 +1,10 @@
 all: compile
 
 compile: 
-	javac -cp ".:jgroups-3.0.0.Final.jar:flatlaf-demo-1.2.jar" *.java
+	javac -cp ".:resources/*" src/*.java
 
 client: compile
-	java -cp ".:jgroups-3.0.0.Final.jar:flatlaf-demo-1.2.jar" Client
+	java -cp "src:resources/*" Client
+
+clean:
+	$(RM) src/*.class

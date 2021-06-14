@@ -424,8 +424,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             for (File file : chooser.getSelectedFiles()) {
                 try {
                     byte[] fileContent = Files.readAllBytes(file.toPath());
-                    channel.send(file, fileContent);
                     channel.send("FILE INCOMING: " + file.getName());
+                    channel.send(file, fileContent);
                 } catch (IOException e) {
                     log.error("Couldn't send file: " + e);
                 }
