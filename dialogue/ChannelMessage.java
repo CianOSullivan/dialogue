@@ -1,3 +1,5 @@
+package dialogue;
+
 import java.io.File;
 import java.io.Serializable;
 import javax.crypto.SecretKey;

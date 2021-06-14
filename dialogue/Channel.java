@@ -1,3 +1,5 @@
+package dialogue;
+
 import org.jgroups.JChannel;
 import org.jgroups.View;
 import org.jgroups.ReceiverAdapter;
