@@ -36,6 +36,8 @@ import org.jgroups.Address;
 
 import com.formdev.flatlaf.FlatDarculaLaf;
 
+import java.awt.datatransfer.*;
+
 /**
  * Generates a window to the channel and handles incoming messages
  */
@@ -52,6 +54,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     private JMenuItem syncKeyItem;
     private JMenuItem genKeyItem;
     private JMenuItem changeChanItem;
+    private JMenuItem sendClipboard;
     private JMenuItem listMembers;
 
     private JButton sendButton;
@@ -116,6 +119,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         genKeyItem = new JMenuItem("Generate new key");
         syncKeyItem = new JMenuItem("Sync key to all channel members");
         changeChanItem = new JMenuItem("Change the messaging channel");
+        sendClipboard = new JMenuItem("Send clipboard contents to channel");
 
         listMembers = new JMenuItem("List all channel members");
         saveItem = new JMenuItem("Save as");
@@ -132,6 +136,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         toolsMenu.add(genKeyItem);
         toolsMenu.add(syncKeyItem);
         toolsMenu.add(changeChanItem);
+        toolsMenu.add(sendClipboard);
         viewMenu.add(listMembers);
         helpMenu.add(aboutItem);
 
@@ -156,6 +161,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         genKeyItem.addActionListener(this);
         syncKeyItem.addActionListener(this);
         changeChanItem.addActionListener(this);
+        sendClipboard.addActionListener(this);
         listMembers.addActionListener(this);
         aboutItem.addActionListener(this);
         exitItem.addActionListener(this);
@@ -376,6 +382,24 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     }
 
     /**
+     * Send the clipboard contents to the channel
+     */
+    private void printClipboard() {
+        try {
+            Clipboard c = Toolkit.getDefaultToolkit().getSystemClipboard();
+            String contents = (String) c.getData(DataFlavor.stringFlavor);
+            int dialogResult = JOptionPane.showConfirmDialog(null,
+                    "Are you sure you want to send the clipboard contents to the channel?: \n\n" + contents,
+                    "Clipboard", JOptionPane.YES_NO_OPTION);
+            if (dialogResult == JOptionPane.YES_OPTION) {
+                channel.send(contents);
+            }
+        } catch (UnsupportedFlavorException | IOException e) {
+            log.error("Couldn't get clipboard contents");
+        }
+    }
+
+    /**
      * Generate a new symmetric key
      */
     private void makeKey() {
@@ -479,6 +503,8 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             listMembers();
         } else if (src == genKeyItem) {
             makeKey();
+        } else if (src == sendClipboard) {
+            printClipboard();
         } else if (src == saveItem) {
             saveTranscript();
         } else if (src == syncKeyItem) {
