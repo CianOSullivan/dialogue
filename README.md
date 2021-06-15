@@ -1,6 +1,6 @@
 # Dialogue
 
-Local network chat application using Java SealedObjects for encryption. Allows for secure and easy communication on the local network by using JGroups for reliable messaging. Any messages sent from one client will appear on other clients that are also online.
+Local network chat application using Java SealedObjects for encryption. Allows for secure and easy communication on the local network by using [JGroups](https://github.com/belaban/JGroups) for reliable messaging. Any messages sent from one client will appear on other clients that are also online.
 
 # Features
 
@@ -14,3 +14,9 @@ Local network chat application using Java SealedObjects for encryption. Allows f
 # Screenshot
 
 ![Image of Dialogue](assets/screenshot.png)
+
+# Libraries
+
+[JGroups](https://github.com/belaban/JGroups) used for reliable group communication.
+
+[FlatLaf](https://www.formdev.com/flatlaf/) used for GUI theming.
