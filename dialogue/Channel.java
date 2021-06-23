@@ -19,41 +19,32 @@ public class Channel extends ReceiverAdapter {
     private final EventLogger log;
     private Address local_address; // The address of this channel
 
-    JChannel channel;
-    ChannelWindow window;
-    String user_name = System.getProperty("user.name", "n/a");
-    SecretKey aesKey;
+    private JChannel channel;
+    private ChannelWindow window;
+    private final String user_name = System.getProperty("user.name", "n/a");
+    private final KeyHandler keyHandler;
     private boolean connected = false;
 
     /**
      * Make a new chat channel
-     * 
-     * @param key the symmetric key
+     *
+     * @param k   the key handler instance
      * @param l   the logger
      */
-    public Channel(SecretKey key, EventLogger l) {
-        aesKey = key;
+    public Channel(KeyHandler k, EventLogger l) {
+        keyHandler = k;
         log = l;
     }
 
     /**
-     * Start using the new symmetric key
-     * 
-     * @param newKey the new key
-     */
-    public void updateKey(SecretKey newKey) {
-        aesKey = newKey;
-    }
-
-    /**
      * Join the cluster
-     * 
-     * @throws Exception
+     *
+     * @throws Exception occurs when channel not started
      */
     public void start() throws Exception {
         channel = new JChannel();
         channel.setReceiver(this);
-        window = new ChannelWindow(this, aesKey, log);
+        window = new ChannelWindow(this, keyHandler, log);
         channel.connect("ChatChannel"); // This takes a long time
         connected = true;
         local_address = channel.getAddress();
@@ -61,17 +52,27 @@ public class Channel extends ReceiverAdapter {
 
     /**
      * Get the view of the channel
-     * 
+     *
      * @return the view of the channel
      */
     public View getView() {
         return channel.getView();
     }
 
+    /**
+     * Get the name of the channel
+     *
+     * @return the cluster name
+     */
     public String getName() {
         return channel.getClusterName();
     }
 
+    /**
+     * Set the channel to a different name
+     *
+     * @param name the new cluster name
+     */
     public void setChannel(String name) {
         try {
             channel.disconnect();
@@ -80,16 +81,20 @@ public class Channel extends ReceiverAdapter {
         } catch (Exception e) {
             log.error("Could not set channel to " + name);
         }
-
     }
 
+    /**
+     * Returns channel connection status
+     *
+     * @return whether the channel is connected or not
+     */
     public boolean isConnected() {
         return connected;
     }
 
     /**
      * Get the address of this device
-     * 
+     *
      * @return the address of the channel
      */
     public Address getLocalAddress() {
@@ -98,7 +103,7 @@ public class Channel extends ReceiverAdapter {
 
     /**
      * Accept a new view of the channel
-     * 
+     *
      * @param new_view the new view
      */
     public void viewAccepted(View new_view) {
@@ -107,7 +112,7 @@ public class Channel extends ReceiverAdapter {
 
     /**
      * Send a sealed message to the channel
-     * 
+     *
      * @param msg the message string
      */
     public void send(String msg) {
@@ -117,7 +122,7 @@ public class Channel extends ReceiverAdapter {
             msg = msg.replace("\\t", "    ");
 
             Cipher cipher = Cipher.getInstance("AES");
-            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+            cipher.init(Cipher.ENCRYPT_MODE, keyHandler.getKey());
             ChannelMessage message = new ChannelMessage(user_name, msg);
             SealedObject sealedMessage = new SealedObject(message, cipher);
             channel.send(new Message(null, null, sealedMessage));
@@ -129,7 +134,7 @@ public class Channel extends ReceiverAdapter {
 
     /**
      * Send a secret key to the channel
-     * 
+     *
      * @param key the key
      */
     public void send(SecretKey key) {
@@ -144,14 +149,14 @@ public class Channel extends ReceiverAdapter {
 
     /**
      * Send a sealed file to the channel
-     * 
+     *
      * @param fileMeta the file metadata
      * @param msg      the file byte array
      */
     public void send(File fileMeta, byte[] msg) {
         try {
             Cipher cipher = Cipher.getInstance("AES");
-            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+            cipher.init(Cipher.ENCRYPT_MODE, keyHandler.getKey());
 
             ChannelMessage message = new ChannelMessage(user_name, fileMeta, msg);
             SealedObject sealedMessage = new SealedObject(message, cipher);
@@ -164,8 +169,8 @@ public class Channel extends ReceiverAdapter {
 
     /**
      * Process an incoming message
-     * 
-     * @param msg
+     *
+     * @param msg the message to process
      */
     public void receive(Message msg) {
         window.processMessage(msg);

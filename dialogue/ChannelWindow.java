@@ -1,6 +1,5 @@
 package dialogue;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.SealedObject;
 import javax.crypto.SecretKey;
 import javax.swing.*;
@@ -9,15 +8,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.*;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.awt.event.WindowAdapter;
 
 import javax.swing.text.AttributeSet;
@@ -28,10 +24,8 @@ import javax.swing.text.StyleContext;
 import javax.swing.text.StyledDocument;
 
 import javax.swing.border.*;
-import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.jgroups.Message;
-import org.jgroups.View;
 import org.jgroups.Address;
 
 import com.formdev.flatlaf.FlatDarculaLaf;
@@ -59,24 +53,24 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     private JButton sendButton;
     private JButton clearButton;
-    private Channel channel;
+    private final Channel channel;
     private AttributeSet purpleAttributes;
     private AttributeSet whiteAttributes;
-    private SecretKey aesKey; // The symmetric key for encrypting/decrypting messages
+    private final KeyHandler keyHandler;
 
     private boolean deviceListActive = false;
     private JPanel deviceList;
 
     /**
      * Make a new Channel Window
-     * 
+     *
      * @param c   the JGroups channel
-     * @param key the symmetric key
+     * @param k   the KeyHandler instance
      * @param l   the logfile logger
      */
-    public ChannelWindow(Channel c, SecretKey key, EventLogger l) {
+    public ChannelWindow(Channel c, KeyHandler k, EventLogger l) {
         channel = c;
-        aesKey = key;
+        keyHandler = k;
         log = l;
         FlatDarculaLaf.install();
 
@@ -121,7 +115,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         changeChanItem = new JMenuItem("Change the messaging channel");
         sendClipboard = new JMenuItem("Send clipboard contents to channel");
 
-        listMembers = new JMenuItem("List all channel members");
+        listMembers = new JMenuItem("Toggle member list");
         saveItem = new JMenuItem("Save as");
         aboutItem = new JMenuItem("About");
         exitItem = new JMenuItem("Exit");
@@ -190,14 +184,14 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     /**
      * Accepts messages, files and symmetric keys and handles them appropriately
-     * 
+     *
      * @param msg The sealed channel message
      */
     public void processMessage(Message msg) {
         try {
             Address source = msg.getSrc();
             SealedObject sealedContents = (SealedObject) msg.getObject();
-            ChannelMessage contents = (ChannelMessage) sealedContents.getObject(aesKey);
+            ChannelMessage contents = (ChannelMessage) sealedContents.getObject(keyHandler.getKey());
 
             if (contents.isFile()) {
                 // Save the file if this client didn't send it
@@ -221,7 +215,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     /**
      * Save a file to the downloads folder
-     * 
+     *
      * @param fileMeta the file metadata
      * @param file     the byte array of the file
      */
@@ -250,7 +244,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     /**
      * Print the username in purple
-     * 
+     *
      * @param author the username string
      */
     private void printUsername(String author) {
@@ -264,7 +258,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     /**
      * Print the message in white
-     * 
+     *
      * @param msg the message string
      */
     private void printMessage(String msg) {
@@ -283,7 +277,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
     private void displayAbout() {
         String helpString = "Dialogue - Local network chat application.\n\n"
                 + "Allows for easy communication between multiple computers on a local network. "
-                + "Utilises JGroups for relible group messaging. "
+                + "Utilises JGroups for reliable group messaging. "
                 + "Any messages sent from one client will appear on other clients that are also online.";
         JOptionPane.showMessageDialog(frame, helpString);
     }
@@ -302,7 +296,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
 
     /**
      * Add the device list to the right of the chat window
-     * 
+     *
      * @param members the members in the channel
      */
     private void addDeviceList(String members) {
@@ -337,7 +331,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
         if (deviceListActive) {
             removeDeviceList();
         } else {
-            String members = "Members connected to cluster: \n\n";
+            StringBuilder members = new StringBuilder("Members connected to cluster: \n\n");
             if (!channel.isConnected()) {
                 JOptionPane.showMessageDialog(frame, "The channel has not been connected yet, slow down!",
                         "Channel not connected", JOptionPane.ERROR_MESSAGE);
@@ -345,10 +339,10 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
             }
 
             for (Address a : channel.getView().getMembers()) {
-                members += a.toString() + "\n";
+                members.append(a.toString()).append("\n");
             }
 
-            addDeviceList(members);
+            addDeviceList(members.toString());
         }
     }
 
@@ -403,52 +397,32 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
      * Generate a new symmetric key
      */
     private void makeKey() {
-        // Generate a new cipher and add key to server
-        try {
-            KeyGenerator kgen = KeyGenerator.getInstance("AES");
-            kgen.init(128);
-            SecretKey newKey = kgen.generateKey();
+        SecretKey newKey = keyHandler.genKey();
 
-            if (new File("key.txt").isFile()) {
-                log.warning("Key file already exists");
+		if (keyHandler.doesKeyExist()) {
+		    log.warning("Key file already exists");
 
-                // Ask if the key file should be overwritten
-                int dialogResult = JOptionPane.showConfirmDialog(null, "Key already exists. Overwrite?", "Warning",
-                        JOptionPane.YES_NO_OPTION);
-                if (dialogResult == JOptionPane.YES_OPTION) {
-                    try (FileOutputStream key_file = new FileOutputStream("key.txt")) {
-                        key_file.write(newKey.getEncoded());
-                    }
-                    aesKey = newKey;
-                    channel.updateKey(aesKey);
-                }
-            } else {
-                try (FileOutputStream key_file = new FileOutputStream("key.txt")) {
-                    key_file.write(newKey.getEncoded());
-                }
-                aesKey = newKey;
-                channel.updateKey(aesKey);
-            }
-        } catch (NoSuchAlgorithmException | IOException e) {
-            log.error("An error occurred generating key: " + e);
-        }
+		    // Ask if the key file should be overwritten
+		    int dialogResult = JOptionPane.showConfirmDialog(null, "Key already exists. Overwrite?", "Warning",
+		            JOptionPane.YES_NO_OPTION);
+		    if (dialogResult == JOptionPane.YES_OPTION) {
+		        keyHandler.acceptNewKey(newKey);
+		    }
+		} else {
+		    // Key does not exist already
+		    keyHandler.acceptNewKey(newKey);
+		}
     }
 
     /**
      * Accept a new symmetric key
-     * 
+     *
      * @param key the new key
      */
     private void acceptKey(SecretKey key) {
         int dialogResult = JOptionPane.showConfirmDialog(null, "Accept new key?", "Warning", JOptionPane.YES_NO_OPTION);
         if (dialogResult == JOptionPane.YES_OPTION) {
-            try (FileOutputStream key_file = new FileOutputStream("key.txt")) {
-                key_file.write(key.getEncoded());
-            } catch (IOException e) {
-                log.error("Couldn't accept key: " + e);
-            }
-            aesKey = key;
-            channel.updateKey(aesKey);
+            keyHandler.acceptNewKey(key);
         }
     }
 
@@ -456,7 +430,7 @@ public class ChannelWindow extends WindowAdapter implements ActionListener {
      * Send this clients key to the channel
      */
     private void syncKey() {
-        channel.send(aesKey);
+        channel.send(keyHandler.getKey());
     }
 
     /**

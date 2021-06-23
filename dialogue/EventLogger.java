@@ -1,5 +1,6 @@
 package dialogue;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.logging.*;
@@ -22,11 +23,19 @@ public class EventLogger {
      */
     private void setupLogger() {
         try {
+            // Make dir if not exists
+            String logPath = System.getProperty("user.home") + "/.config/cian/dialogue/";
+            File logDir = new File(logPath);
+            if (!logDir.exists()){
+                log.info("Making config directory");
+                logDir.mkdirs();
+            }
+
             // Open the logfile
-            FileHandler log_file = new FileHandler("dialogue.log", true);
+            FileHandler logFile = new FileHandler(logPath + "dialogue.log", true);
 
             // Single log output
-            log_file.setFormatter(new SimpleFormatter() {
+            logFile.setFormatter(new SimpleFormatter() {
                 @Override
                 public String format(LogRecord lr) {
                     // Set the log file format to a one liner
@@ -35,7 +44,7 @@ public class EventLogger {
                 }
             });
             // Add events to log file with info level set
-            log.addHandler(log_file);
+            log.addHandler(logFile);
             log.setLevel(Level.FINE);
         } catch (IOException e) {
             System.err.println("Couldn't open logfile: " + e);
